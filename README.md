@@ -152,36 +152,48 @@ The fix is to match this exactly.
 
 ### Unit Tests
 
-- [ ] Test case 1: [Description]
-- [ ] Test case 2: [Description]
-- [ ] Test case 3: [Description]
+The `admin.branding.v1` package has a `__tests__/branding.test.tsx` file using React Testing Library, but it only covers the top-level `BrandingPage` component — the password recovery fragments have no dedicated tests. For this fix, I will add a focused render test for the multi-option fragment:
+
+- [ ] Render `PasswordRecoveryMultiOptionFragment` and assert the Cancel element is a `<button>` (not an `<a>` tag)
+- [ ] Assert no element in the rendered output has an `href` containing `javascript:`
+- [ ] Assert the Cancel button has `className` matching the pattern used in sibling fragments (`"ui secondary fluid large button"`)
+
+Note: the existing snapshot test in `branding.test.tsx` is skipped with `it.skip()` due to framer-motion incompatibilities, so snapshot testing is not expected here either.
 
 ### Integration Tests
 
-- [ ] Integration scenario 1
-- [ ] Integration scenario 2
+- [ ] Run `pnpm nx lint admin.branding.v1` — zero `jsx-no-script-url` violations reported
+- [ ] Run `pnpm nx build admin.branding.v1` — TypeScript compilation succeeds with no errors
 
 ### Manual Testing
 
-[What you tested manually and results]
+Open the WSO2 Identity Server Admin Console locally, navigate to **Branding → Design → Login page preview**, and confirm:
+- The "Forgot Password?" recovery screen still renders the Cancel button visually
+- The button appearance matches the sibling fragments (correct Semantic UI classes, same sizing)
+- No console errors or React warnings about `javascript:` URLs
 
 ---
 
 ## Implementation Notes
 
-### Week [X] Progress
+### Week 1 Progress (Phase 2 — Understanding & Reproduction)
 
-[What you built this week, challenges faced, decisions made]
+Spent this week fully understanding the issue before touching any code. The main challenge was that the issue is filed in `product-is` but the actual file lives in a completely separate repository (`wso2/identity-apps`). It took some digging through the issue comments to find the referenced commit (`b2a8f16`) that pointed to identity-apps.
 
-### Week [Y] Progress
+Once I found the file, I read the sibling fragments in the same `password-recovery/` directory to understand the intended pattern. This was the key insight: the other three Cancel buttons are plain `<button>` elements with no navigation logic, because these are static preview components — not real pages. The `goBack()` call in the multi-option fragment is a legacy inconsistency, not something to port forward.
 
-[Continue documenting as you work]
+I also looked at the existing test file (`__tests__/branding.test.tsx`) to understand what testing infrastructure exists and what a new test should look like.
+
+Decision made: the fix is a `<a>` → `<button>` swap matching sibling fragment style exactly, with no routing logic introduced.
+
+### Week 2 Progress (Phase 3 — Implementation)
+
+[To be filled in once the fix is coded and submitted]
 
 ### Code Changes
 
-- **Files modified:** [List]
-- **Key commits:** [Links to important commits]
-- **Approach decisions:** [Why you chose certain approaches]
+- **Files modified:** `features/admin.branding.v1/components/preview/sign-in-box/fragments/password-recovery/password-recovery-multi-option-fragment.tsx` (in `wso2/identity-apps`)
+- **Approach decisions:** Matched sibling fragment pattern exactly rather than introducing a `useNavigate` hook — this is a preview component, not a real page, so no navigation behavior is expected or needed. Keeping parity with siblings makes the codebase consistent and avoids adding unnecessary dependencies.
 
 ---
 
